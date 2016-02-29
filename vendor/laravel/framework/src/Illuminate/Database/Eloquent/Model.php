@@ -9,6 +9,7 @@ use ArrayAccess;
 use Carbon\Carbon;
 use LogicException;
 use JsonSerializable;
+use DateTimeInterface;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
@@ -478,8 +479,8 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      */
     protected function fillableFromArray(array $attributes)
     {
-        if (count($this->fillable) > 0 && ! static::$unguarded) {
-            return array_intersect_key($attributes, array_flip($this->fillable));
+        if (count($this->getFillable()) > 0 && ! static::$unguarded) {
+            return array_intersect_key($attributes, array_flip($this->getFillable()));
         }
 
         return $attributes;
@@ -591,53 +592,6 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
     }
 
     /**
-     * Get the first record matching the attributes or create it.
-     *
-     * @param  array  $attributes
-     * @return static
-     */
-    public static function firstOrCreate(array $attributes)
-    {
-        if (! is_null($instance = (new static)->newQueryWithoutScopes()->where($attributes)->first())) {
-            return $instance;
-        }
-
-        return static::create($attributes);
-    }
-
-    /**
-     * Get the first record matching the attributes or instantiate it.
-     *
-     * @param  array  $attributes
-     * @return static
-     */
-    public static function firstOrNew(array $attributes)
-    {
-        if (! is_null($instance = (new static)->newQueryWithoutScopes()->where($attributes)->first())) {
-            return $instance;
-        }
-
-        return new static($attributes);
-    }
-
-    /**
-     * Create or update a record matching the attributes, and fill it with values.
-     *
-     * @param  array  $attributes
-     * @param  array  $values
-     * @param  array  $options
-     * @return static
-     */
-    public static function updateOrCreate(array $attributes, array $values = [], array $options = [])
-    {
-        $instance = static::firstOrNew($attributes);
-
-        $instance->fill($values)->save($options);
-
-        return $instance;
-    }
-
-    /**
      * Begin querying the model.
      *
      * @return \Illuminate\Database\Eloquent\Builder
@@ -693,28 +647,12 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
     }
 
     /**
-     * Find a model by its primary key or return new static.
-     *
-     * @param  mixed  $id
-     * @param  array  $columns
-     * @return \Illuminate\Support\Collection|static
-     */
-    public static function findOrNew($id, $columns = ['*'])
-    {
-        if (! is_null($model = static::find($id, $columns))) {
-            return $model;
-        }
-
-        return new static;
-    }
-
-    /**
      * Reload a fresh model instance from the database.
      *
-     * @param  array  $with
+     * @param  array|string  $with
      * @return $this|null
      */
-    public function fresh(array $with = [])
+    public function fresh($with = [])
     {
         if (! $this->exists) {
             return;
@@ -1410,11 +1348,12 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      *
      * @param  string  $column
      * @param  int  $amount
+     * @param  array  $extra
      * @return int
      */
-    protected function increment($column, $amount = 1)
+    protected function increment($column, $amount = 1, array $extra = [])
     {
-        return $this->incrementOrDecrement($column, $amount, 'increment');
+        return $this->incrementOrDecrement($column, $amount, $extra, 'increment');
     }
 
     /**
@@ -1422,11 +1361,12 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      *
      * @param  string  $column
      * @param  int  $amount
+     * @param  array  $extra
      * @return int
      */
-    protected function decrement($column, $amount = 1)
+    protected function decrement($column, $amount = 1, array $extra = [])
     {
-        return $this->incrementOrDecrement($column, $amount, 'decrement');
+        return $this->incrementOrDecrement($column, $amount, $extra, 'decrement');
     }
 
     /**
@@ -1434,20 +1374,21 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      *
      * @param  string  $column
      * @param  int  $amount
+     * @param  array  $extra
      * @param  string  $method
      * @return int
      */
-    protected function incrementOrDecrement($column, $amount, $method)
+    protected function incrementOrDecrement($column, $amount, $extra, $method)
     {
         $query = $this->newQuery();
 
         if (! $this->exists) {
-            return $query->{$method}($column, $amount);
+            return $query->{$method}($column, $amount, $extra);
         }
 
         $this->incrementOrDecrementAttributeValue($column, $amount, $method);
 
-        return $query->where($this->getKeyName(), $this->getKey())->{$method}($column, $amount);
+        return $query->where($this->getKeyName(), $this->getKey())->{$method}($column, $amount, $extra);
     }
 
     /**
@@ -1475,7 +1416,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
     public function update(array $attributes = [], array $options = [])
     {
         if (! $this->exists) {
-            return $this->newQuery()->update($attributes);
+            return false;
         }
 
         return $this->fill($attributes)->save($options);
@@ -1645,7 +1586,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
         // table from the database. Not all tables have to be incrementing though.
         $attributes = $this->attributes;
 
-        if ($this->incrementing) {
+        if ($this->getIncrementing()) {
             $this->insertAndSetId($query, $attributes);
         }
 
@@ -2363,7 +2304,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
         // If the key is in the "fillable" array, we can of course assume that it's
         // a fillable attribute. Otherwise, we will check the guarded array when
         // we need to determine if the attribute is black-listed on the model.
-        if (in_array($key, $this->fillable)) {
+        if (in_array($key, $this->getFillable())) {
             return true;
         }
 
@@ -2371,7 +2312,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
             return false;
         }
 
-        return empty($this->fillable) && ! Str::startsWith($key, '_');
+        return empty($this->getFillable()) && ! Str::startsWith($key, '_');
     }
 
     /**
@@ -2382,7 +2323,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      */
     public function isGuarded($key)
     {
-        return in_array($key, $this->guarded) || $this->guarded == ['*'];
+        return in_array($key, $this->getGuarded()) || $this->getGuarded() == ['*'];
     }
 
     /**
@@ -2392,7 +2333,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      */
     public function totallyGuarded()
     {
-        return count($this->fillable) == 0 && $this->guarded == ['*'];
+        return count($this->getFillable()) == 0 && $this->getGuarded() == ['*'];
     }
 
     /**
@@ -2800,7 +2741,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      * @param  array|string|null  $types
      * @return bool
      */
-    protected function hasCast($key, $types = null)
+    public function hasCast($key, $types = null)
     {
         if (array_key_exists($key, $this->getCasts())) {
             return $types ? in_array($this->getCastType($key), (array) $types, true) : true;
@@ -2814,9 +2755,9 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      *
      * @return array
      */
-    protected function getCasts()
+    public function getCasts()
     {
-        if ($this->incrementing) {
+        if ($this->getIncrementing()) {
             return array_merge([
                 $this->getKeyName() => 'int',
             ], $this->casts);
@@ -2982,17 +2923,19 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
     protected function asDateTime($value)
     {
         // If this value is already a Carbon instance, we shall just return it as is.
-        // This prevents us having to reinstantiate a Carbon instance when we know
+        // This prevents us having to re-instantiate a Carbon instance when we know
         // it already is one, which wouldn't be fulfilled by the DateTime check.
         if ($value instanceof Carbon) {
             return $value;
         }
 
-        // If the value is already a DateTime instance, we will just skip the rest of
-        // these checks since they will be a waste of time, and hinder performance
-        // when checking the field. We will just return the DateTime right away.
-        if ($value instanceof DateTime) {
-            return Carbon::instance($value);
+         // If the value is already a DateTime instance, we will just skip the rest of
+         // these checks since they will be a waste of time, and hinder performance
+         // when checking the field. We will just return the DateTime right away.
+        if ($value instanceof DateTimeInterface) {
+            return new Carbon(
+                $value->format('Y-m-d H:i:s.u'), $value->getTimeZone()
+            );
         }
 
         // If this value is an integer, we will assume it is a UNIX timestamp's value
@@ -3005,7 +2948,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
         // If the value is in simply year, month, day format, we will instantiate the
         // Carbon instances from that format. Again, this provides for simple date
         // fields on the database, while still supporting Carbonized conversion.
-        if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $value)) {
+        if (preg_match('/^(\d{4})-(\d{1,2})-(\d{1,2})$/', $value)) {
             return Carbon::createFromFormat('Y-m-d', $value)->startOfDay();
         }
 
@@ -3023,7 +2966,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      */
     protected function asTimeStamp($value)
     {
-        return (int) $this->asDateTime($value)->timestamp;
+        return $this->asDateTime($value)->getTimestamp();
     }
 
     /**
@@ -3099,7 +3042,9 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
 
         $attributes = Arr::except($this->attributes, $except);
 
-        with($instance = new static)->setRawAttributes($attributes);
+        $instance = new static;
+
+        $instance->setRawAttributes($attributes);
 
         return $instance->setRelations($this->relations);
     }
@@ -3298,7 +3243,7 @@ abstract class Model implements ArrayAccess, Arrayable, Jsonable, JsonSerializab
      */
     public function getConnection()
     {
-        return static::resolveConnection($this->connection);
+        return static::resolveConnection($this->getConnectionName());
     }
 
     /**

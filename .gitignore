@@ -1,4 +1,8 @@
 /bootstrap/compiled.php
+/vendor
+/node_modules
+Homestead.yaml
+Homestead.json
 .env.*.php
 .env.php
 .env

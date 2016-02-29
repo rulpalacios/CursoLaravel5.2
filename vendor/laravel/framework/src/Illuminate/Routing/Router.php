@@ -121,10 +121,10 @@ class Router implements RegistrarContract
      * Register a new GET route with the router.
      *
      * @param  string  $uri
-     * @param  \Closure|array|string  $action
+     * @param  \Closure|array|string|null  $action
      * @return \Illuminate\Routing\Route
      */
-    public function get($uri, $action)
+    public function get($uri, $action = null)
     {
         return $this->addRoute(['GET', 'HEAD'], $uri, $action);
     }
@@ -133,10 +133,10 @@ class Router implements RegistrarContract
      * Register a new POST route with the router.
      *
      * @param  string  $uri
-     * @param  \Closure|array|string  $action
+     * @param  \Closure|array|string|null  $action
      * @return \Illuminate\Routing\Route
      */
-    public function post($uri, $action)
+    public function post($uri, $action = null)
     {
         return $this->addRoute('POST', $uri, $action);
     }
@@ -145,10 +145,10 @@ class Router implements RegistrarContract
      * Register a new PUT route with the router.
      *
      * @param  string  $uri
-     * @param  \Closure|array|string  $action
+     * @param  \Closure|array|string|null  $action
      * @return \Illuminate\Routing\Route
      */
-    public function put($uri, $action)
+    public function put($uri, $action = null)
     {
         return $this->addRoute('PUT', $uri, $action);
     }
@@ -157,10 +157,10 @@ class Router implements RegistrarContract
      * Register a new PATCH route with the router.
      *
      * @param  string  $uri
-     * @param  \Closure|array|string  $action
+     * @param  \Closure|array|string|null  $action
      * @return \Illuminate\Routing\Route
      */
-    public function patch($uri, $action)
+    public function patch($uri, $action = null)
     {
         return $this->addRoute('PATCH', $uri, $action);
     }
@@ -169,10 +169,10 @@ class Router implements RegistrarContract
      * Register a new DELETE route with the router.
      *
      * @param  string  $uri
-     * @param  \Closure|array|string  $action
+     * @param  \Closure|array|string|null  $action
      * @return \Illuminate\Routing\Route
      */
-    public function delete($uri, $action)
+    public function delete($uri, $action = null)
     {
         return $this->addRoute('DELETE', $uri, $action);
     }
@@ -181,10 +181,10 @@ class Router implements RegistrarContract
      * Register a new OPTIONS route with the router.
      *
      * @param  string  $uri
-     * @param  \Closure|array|string  $action
+     * @param  \Closure|array|string|null  $action
      * @return \Illuminate\Routing\Route
      */
-    public function options($uri, $action)
+    public function options($uri, $action = null)
     {
         return $this->addRoute('OPTIONS', $uri, $action);
     }
@@ -193,10 +193,10 @@ class Router implements RegistrarContract
      * Register a new route responding to all verbs.
      *
      * @param  string  $uri
-     * @param  \Closure|array|string  $action
+     * @param  \Closure|array|string|null  $action
      * @return \Illuminate\Routing\Route
      */
-    public function any($uri, $action)
+    public function any($uri, $action = null)
     {
         $verbs = ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'];
 
@@ -208,10 +208,10 @@ class Router implements RegistrarContract
      *
      * @param  array|string  $methods
      * @param  string  $uri
-     * @param  \Closure|array|string  $action
+     * @param  \Closure|array|string|null  $action
      * @return \Illuminate\Routing\Route
      */
-    public function match($methods, $uri, $action)
+    public function match($methods, $uri, $action = null)
     {
         return $this->addRoute(array_map('strtoupper', (array) $methods), $uri, $action);
     }
@@ -304,6 +304,27 @@ class Router implements RegistrarContract
         $missing = $this->any($uri.'/{_missing}', $controller.'@missingMethod');
 
         $missing->where('_missing', '(.*)');
+    }
+
+    /**
+     * Set the unmapped global resource parameters to singular.
+     *
+     * @return void
+     */
+    public function singularResourceParameters()
+    {
+        ResourceRegistrar::singularParameters();
+    }
+
+    /**
+     * Set the global resource parameter mapping.
+     *
+     * @param  array $parameters
+     * @return void
+     */
+    public function resourceParameters(array $parameters = [])
+    {
+        ResourceRegistrar::setParameters($parameters);
     }
 
     /**
@@ -911,6 +932,42 @@ class Router implements RegistrarContract
     public function middlewareGroup($name, array $middleware)
     {
         $this->middlewareGroups[$name] = $middleware;
+
+        return $this;
+    }
+
+    /**
+     * Add a middleware to the beginning of a middleware group.
+     *
+     * If the middleware is already in the group, it will not be added again.
+     *
+     * @param  string  $group
+     * @param  string  $middleware
+     * @return $this
+     */
+    public function prependMiddlewareToGroup($group, $middleware)
+    {
+        if (isset($this->middlewareGroups[$group]) && ! in_array($middleware, $this->middlewareGroups[$group])) {
+            array_unshift($this->middlewareGroups[$group], $middleware);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Add a middleware to the end of a middleware group.
+     *
+     * If the middleware is already in the group, it will not be added again.
+     *
+     * @param  string  $group
+     * @param  string  $middleware
+     * @return $this
+     */
+    public function pushMiddlewareToGroup($group, $middleware)
+    {
+        if (isset($this->middlewareGroups[$group]) && ! in_array($middleware, $this->middlewareGroups[$group])) {
+            $this->middlewareGroups[$group][] = $middleware;
+        }
 
         return $this;
     }

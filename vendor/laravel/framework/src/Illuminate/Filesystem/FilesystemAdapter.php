@@ -2,11 +2,14 @@
 
 namespace Illuminate\Filesystem;
 
+use RuntimeException;
 use InvalidArgumentException;
 use Illuminate\Support\Collection;
 use League\Flysystem\AdapterInterface;
 use League\Flysystem\FilesystemInterface;
+use League\Flysystem\AwsS3v3\AwsS3Adapter;
 use League\Flysystem\FileNotFoundException;
+use League\Flysystem\Adapter\Local as LocalAdapter;
 use Illuminate\Contracts\Filesystem\Filesystem as FilesystemContract;
 use Illuminate\Contracts\Filesystem\Cloud as CloudFilesystemContract;
 use Illuminate\Contracts\Filesystem\FileNotFoundException as ContractFileNotFoundException;
@@ -216,6 +219,27 @@ class FilesystemAdapter implements FilesystemContract, CloudFilesystemContract
     }
 
     /**
+     * Get the URL for the file at the given path.
+     *
+     * @param  string  $path
+     * @return string
+     */
+    public function url($path)
+    {
+        $adapter = $this->driver->getAdapter();
+
+        if ($adapter instanceof AwsS3Adapter) {
+            $path = $adapter->getPathPrefix().$path;
+
+            return $adapter->getClient()->getObjectUrl($adapter->getBucket(), $path);
+        } elseif ($adapter instanceof LocalAdapter) {
+            return '/storage/'.$path;
+        } else {
+            throw new RuntimeException('This driver does not support retrieving URLs.');
+        }
+    }
+
+    /**
      * Get an array of all files in a directory.
      *
      * @param  string|null  $directory
@@ -318,6 +342,7 @@ class FilesystemAdapter implements FilesystemContract, CloudFilesystemContract
      *
      * @param  string|null  $visibility
      * @return string|null
+     *
      * @throws \InvalidArgumentException
      */
     protected function parseVisibility($visibility)

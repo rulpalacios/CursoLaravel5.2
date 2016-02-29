@@ -278,7 +278,7 @@ class Blueprint
     /**
      * Indicate that the given foreign key should be dropped.
      *
-     * @param  string  $index
+     * @param  string|array  $index
      * @return \Illuminate\Support\Fluent
      */
     public function dropForeign($index)
@@ -779,9 +779,7 @@ class Blueprint
      */
     public function nullableTimestamps()
     {
-        $this->timestamp('created_at')->nullable();
-
-        $this->timestamp('updated_at')->nullable();
+        return $this->timestamps();
     }
 
     /**
@@ -791,9 +789,9 @@ class Blueprint
      */
     public function timestamps()
     {
-        $this->timestamp('created_at');
+        $this->timestamp('created_at')->nullable();
 
-        $this->timestamp('updated_at');
+        $this->timestamp('updated_at')->nullable();
     }
 
     /**
@@ -803,9 +801,9 @@ class Blueprint
      */
     public function timestampsTz()
     {
-        $this->timestampTz('created_at');
+        $this->timestampTz('created_at')->nullable();
 
-        $this->timestampTz('updated_at');
+        $this->timestampTz('updated_at')->nullable();
     }
 
     /**
@@ -934,7 +932,7 @@ class Blueprint
      * @param  array   $parameters
      * @return \Illuminate\Support\Fluent
      */
-    protected function addColumn($type, $name, array $parameters = [])
+    public function addColumn($type, $name, array $parameters = [])
     {
         $attributes = array_merge(compact('type', 'name'), $parameters);
 

@@ -31,6 +31,48 @@ if (! function_exists('abort')) {
     }
 }
 
+if (! function_exists('abort_if')) {
+    /**
+     * Throw an HttpException with the given data if the given condition is true.
+     *
+     * @param  bool    $boolean
+     * @param  int     $code
+     * @param  string  $message
+     * @param  array   $headers
+     * @return void
+     *
+     * @throws \Symfony\Component\HttpKernel\Exception\HttpException
+     * @throws \Symfony\Component\HttpKernel\Exception\NotFoundHttpException
+     */
+    function abort_if($boolean, $code, $message = '', array $headers = [])
+    {
+        if ($boolean) {
+            abort($code, $message, $headers);
+        }
+    }
+}
+
+if (! function_exists('abort_unless')) {
+    /**
+     * Throw an HttpException with the given data unless the given condition is true.
+     *
+     * @param  bool    $boolean
+     * @param  int     $code
+     * @param  string  $message
+     * @param  array   $headers
+     * @return void
+     *
+     * @throws \Symfony\Component\HttpKernel\Exception\HttpException
+     * @throws \Symfony\Component\HttpKernel\Exception\NotFoundHttpException
+     */
+    function abort_unless($boolean, $code, $message = '', array $headers = [])
+    {
+        if (! $boolean) {
+            abort($code, $message, $headers);
+        }
+    }
+}
+
 if (! function_exists('action')) {
     /**
      * Generate a URL to a controller action.
@@ -95,11 +137,16 @@ if (! function_exists('auth')) {
     /**
      * Get the available auth instance.
      *
+     * @param  string|null  $guard
      * @return \Illuminate\Contracts\Auth\Factory
      */
-    function auth()
+    function auth($guard = null)
     {
-        return app(AuthFactory::class);
+        if (is_null($guard)) {
+            return app(AuthFactory::class);
+        } else {
+            return app(AuthFactory::class)->guard($guard);
+        }
     }
 }
 
@@ -224,7 +271,7 @@ if (! function_exists('csrf_token')) {
      *
      * @return string
      *
-     * @throws RuntimeException
+     * @throws \RuntimeException
      */
     function csrf_token()
     {
@@ -415,7 +462,7 @@ if (! function_exists('logger')) {
      *
      * @param  string  $message
      * @param  array  $context
-     * @return null|\Illuminate\Contracts\Logging\Log
+     * @return \Illuminate\Contracts\Logging\Log|null
      */
     function logger($message = null, array $context = [])
     {
@@ -659,7 +706,7 @@ if (! function_exists('trans_choice')) {
      * Translates the given message based on a count.
      *
      * @param  string  $id
-     * @param  int     $number
+     * @param  int|array|\Countable  $number
      * @param  array   $parameters
      * @param  string  $domain
      * @param  string  $locale

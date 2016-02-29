@@ -17,13 +17,16 @@ class SyncQueue extends Queue implements QueueContract
      * @param  mixed   $data
      * @param  string  $queue
      * @return mixed
-     * @throws \Throwable
+     *
+     * @throws \Exception|\Throwable
      */
     public function push($job, $data = '', $queue = null)
     {
         $queueJob = $this->resolveJob($this->createPayload($job, $data, $queue));
 
         try {
+            $this->raiseBeforeJobEvent($queueJob);
+
             $queueJob->fire();
 
             $this->raiseAfterJobEvent($queueJob);
@@ -87,6 +90,21 @@ class SyncQueue extends Queue implements QueueContract
     protected function resolveJob($payload)
     {
         return new SyncJob($this->container, $payload);
+    }
+
+    /**
+     * Raise the before queue job event.
+     *
+     * @param  \Illuminate\Contracts\Queue\Job  $job
+     * @return void
+     */
+    protected function raiseBeforeJobEvent(Job $job)
+    {
+        $data = json_decode($job->getRawBody(), true);
+
+        if ($this->container->bound('events')) {
+            $this->container['events']->fire(new Events\JobProcessing('sync', $job, $data));
+        }
     }
 
     /**

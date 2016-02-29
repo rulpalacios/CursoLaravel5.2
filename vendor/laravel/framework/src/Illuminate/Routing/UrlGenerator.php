@@ -314,6 +314,8 @@ class UrlGenerator implements UrlGeneratorContract
      * @param  mixed  $parameters
      * @param  bool   $absolute
      * @return string
+     *
+     * @throws \Illuminate\Routing\Exceptions\UrlGenerationException
      */
     protected function toRoute($route, $parameters, $absolute)
     {
@@ -330,7 +332,7 @@ class UrlGenerator implements UrlGeneratorContract
             throw UrlGenerationException::forMissingParameters($route);
         }
 
-        $uri = strtr(urlencode($uri), $this->dontEncode);
+        $uri = strtr(rawurlencode($uri), $this->dontEncode);
 
         return $absolute ? $uri : '/'.ltrim(str_replace($root, '', $uri), '/');
     }
