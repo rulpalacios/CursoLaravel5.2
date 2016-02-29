@@ -29,6 +29,7 @@ class AuthController extends Controller
      * @var string
      */
     protected $redirectTo = '/home';
+    protected $username = 'name';
 
     /**
      * Create a new authentication controller instance.
@@ -45,10 +46,10 @@ class AuthController extends Controller
      *
      * @return string
      */
-    public function loginUsername()
+    /*public function loginUsername()
     {
         return property_exists($this, 'username') ? $this->username : 'name';
-    }
+    }*/
 
     /**
      * Get a validator for an incoming registration request.
