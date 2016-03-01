@@ -16,7 +16,7 @@ class TaskController extends Controller
      */
     public function index()
     {
-        //
+        return view('tasks.index');
     }
 
     /**
@@ -40,7 +40,7 @@ class TaskController extends Controller
         $request->user()->tasks()->create([
             'name' => $request->name,
             ]);
-        return "Tarea agregada correctamente";
+        return redirect('/task')->with('success','Tarea creada correctamente :3');
     }
 
     /**
