@@ -26,6 +26,8 @@ class AuthServiceProvider extends ServiceProvider
     {
         $this->registerPolicies($gate);
 
-        //
+        $gate->define('read-task',function($user, $task){
+            return $user->id === $task->user_id;
+        });
     }
 }

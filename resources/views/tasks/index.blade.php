@@ -12,9 +12,11 @@
 			</thead>
 			<tbody>
 			@foreach($tasks as $task)
-				<tr>
-					<td>{{ $task->name }}</td>
-				</tr>
+				@can('read-task', $task)
+					<tr>
+						<td>{{ $task->name }}</td>
+					</tr>
+				@endcan
 			@endforeach
 			</tbody>
 		</table>

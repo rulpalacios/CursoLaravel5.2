@@ -14,9 +14,9 @@ class TaskController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function index()
+    public function index(Request $request)
     {
-        $tasks = Task::all();
+        $tasks = Task::where('user_id', $request->user()->id)->get();
         return view('tasks.index',[
             'tasks' => $tasks
             ]);
