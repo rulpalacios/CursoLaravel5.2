@@ -15,6 +15,9 @@
 				@can('read-task', $task)
 					<tr>
 						<td>{{ $task->name }}</td>
+						<td>
+							{{ link_to_route('task.edit', $title = 'Editar', $parameter = $task, $attributes = ['class' => 'btn btn-primary']) }}
+						</td>
 					</tr>
 				@endcan
 			@endforeach

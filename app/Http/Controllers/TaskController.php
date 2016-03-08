@@ -40,9 +40,7 @@ class TaskController extends Controller
      */
     public function store(TaskRequest $request)
     {
-        $request->user()->tasks()->create([
-            'name' => $request->name,
-            ]);
+        $request->user()->tasks()->create($request->all());
         return redirect('/task')->with('success','Tarea creada correctamente :3');
     }
 
@@ -63,9 +61,11 @@ class TaskController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function edit($id)
+    public function edit(Task $task)
     {
-        //
+        return view('tasks.edit',[
+            'task' => $task
+            ]);
     }
 
     /**
@@ -75,9 +75,10 @@ class TaskController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, $id)
+    public function update(Request $request, Task $task)
     {
-        //
+        $task->update($request->all());
+        return redirect('/task')->with('success','Tarea actualizada correctamente :3');
     }
 
     /**
