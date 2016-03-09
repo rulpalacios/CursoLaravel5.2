@@ -12,7 +12,7 @@
 			</thead>
 			<tbody>
 			@foreach($tasks as $task)
-				@can('read-task', $task)
+				@can('owner', $task)
 					<tr>
 						<td>{{ $task->name }}</td>
 						<td>

@@ -13,7 +13,7 @@ class AuthServiceProvider extends ServiceProvider
      * @var array
      */
     protected $policies = [
-        'App\Model' => 'App\Policies\ModelPolicy',
+        'App\Task' => 'App\Policies\TaskPolicy',
     ];
 
     /**
@@ -25,9 +25,9 @@ class AuthServiceProvider extends ServiceProvider
     public function boot(GateContract $gate)
     {
         $this->registerPolicies($gate);
-
+/*
         $gate->define('read-task',function($user, $task){
             return $user->id === $task->user_id;
-        });
+        });*/
     }
 }

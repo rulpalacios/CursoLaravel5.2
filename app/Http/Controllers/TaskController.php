@@ -77,6 +77,7 @@ class TaskController extends Controller
      */
     public function update(Request $request, Task $task)
     {
+        $this->authorize('owner', $task);
         $task->update($request->all());
         return redirect('/task')->with('success','Tarea actualizada correctamente :3');
     }
