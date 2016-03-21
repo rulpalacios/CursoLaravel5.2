@@ -6,9 +6,17 @@ use Illuminate\Http\Request;
 
 use App\Http\Requests;
 use App\Http\Requests\TaskRequest;
+use App\Repositories\TaskRepository;
 use App\Task;
 class TaskController extends Controller
 {
+    protected $tasks;
+
+    public function __construct(TaskRepository $tasks)
+    {
+        $this->tasks = $tasks;
+    }
+
     /**
      * Display a listing of the resource.
      *
@@ -16,9 +24,8 @@ class TaskController extends Controller
      */
     public function index(Request $request)
     {
-        $tasks = Task::where('user_id', $request->user()->id)->get();
         return view('tasks.index',[
-            'tasks' => $tasks
+            'tasks' => $this->tasks->forUser($request->user()),
             ]);
     }
 
